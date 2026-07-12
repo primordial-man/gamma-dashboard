@@ -108,7 +108,7 @@ body::before {
 
 .section-label {
   font-family: 'Orbitron', monospace;
-  font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+  font-size: 12px; letter-spacing: 3px; text-transform: uppercase;
   color: var(--muted); margin: 28px 0 12px;
   display: flex; align-items: center; gap: 10px;
 }
@@ -136,12 +136,12 @@ body::before {
 .stat-card.c-purple::before{ background: var(--purple); box-shadow: 0 0 8px var(--purple); }
 .stat-card.c-orange::before{ background: var(--orange); box-shadow: 0 0 8px var(--orange); }
 
-.stat-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.stat-label { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
 .stat-value { font-family: 'Orbitron', monospace; font-size: 28px; font-weight: 700; line-height: 1; }
 .stat-value.pos { color: var(--green); text-shadow: 0 0 12px rgba(57,255,20,0.6); }
 .stat-value.neg { color: var(--pink);  text-shadow: 0 0 12px rgba(255,45,120,0.6); }
 .stat-value.neu { color: var(--cyan);  text-shadow: 0 0 12px rgba(0,245,233,0.5); }
-.stat-sub  { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.stat-sub  { font-size: 13px; color: var(--muted); margin-top: 4px; }
 
 /* ── YES / NO PANEL ── */
 .yesno-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -161,7 +161,7 @@ body::before {
 
 .yn-stat { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(191,0,255,0.1); }
 .yn-stat:last-child { border-bottom: none; }
-.yn-key { color: var(--muted); font-size: 11px; }
+.yn-key { color: var(--muted); font-size: 13px; }
 .yn-val { font-weight: 700; font-size: 12px; }
 
 /* ── CALIBRATION ── */
@@ -187,7 +187,7 @@ body::before {
   box-shadow: 0 0 6px white;
 }
 
-.calib-stats { display: flex; gap: 16px; margin-top: 6px; font-size: 11px; color: var(--muted); }
+.calib-stats { display: flex; gap: 16px; margin-top: 6px; font-size: 13px; color: var(--muted); }
 .calib-stats span b { color: var(--white); }
 
 /* ── OPEN POSITIONS ── */
@@ -216,11 +216,11 @@ body::before {
 /* ── RECENT BETS ── */
 .bet-table { width: 100%; border-collapse: collapse; }
 .bet-table th {
-  font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+  font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
   color: var(--muted); padding: 6px 8px; text-align: left;
   border-bottom: 1px solid rgba(191,0,255,0.3);
 }
-.bet-table td { padding: 7px 8px; border-bottom: 1px solid rgba(191,0,255,0.1); font-size: 12px; vertical-align: middle; }
+.bet-table td { padding: 7px 8px; border-bottom: 1px solid rgba(191,0,255,0.1); font-size: 14px; vertical-align: middle; }
 .bet-table tr:hover td { background: rgba(191,0,255,0.05); }
 
 .outcome-win  { color: var(--green); font-weight: 700; text-shadow: 0 0 6px rgba(57,255,20,0.5); }
@@ -451,7 +451,7 @@ function render(d) {
     const edgeTxt = b.edge != null ? (b.edge * 100).toFixed(1) + '%' : '—';
     html += `
     <tr>
-      <td style="color:var(--muted)">${b.placed_at}</td>
+      <td style="color:var(--muted);font-size:10px;opacity:0.55;letter-spacing:0">${b.placed_at}</td>
       <td class="hide-sm ticker-cell">${b.market_id.substring(0,24)}</td>
       <td><span class="side-${b.side}">${b.side.toUpperCase()}</span></td>
       <td>$${b.size_usd.toFixed(2)}</td>
