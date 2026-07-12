@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>⚡ Gamma Ray — Kalshi Prediction Markets</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+:root {
+  --bg:      #06000f;
+  --bg2:     #0d0020;
+  --bg3:     #150030;
+  --pink:    #ff2d78;
+  --cyan:    #00f5e9;
+  --green:   #39ff14;
+  --yellow:  #ffee00;
+  --orange:  #ff6b00;
+  --purple:  #bf00ff;
+  --blue:    #0af;
+  --white:   #f0eaff;
+  --muted:   #6b5080;
+  --win:     #39ff14;
+  --loss:    #ff2d78;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--white);
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  font-size: 13px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── SCANLINE OVERLAY ── */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0,0,0,0.08) 0px,
+    rgba(0,0,0,0.08) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── GRID BG ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(191,0,255,0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(191,0,255,0.07) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(6,0,15,0.92);
+  border-bottom: 1px solid var(--pink);
+  box-shadow: 0 0 20px rgba(255,45,120,0.3), inset 0 -1px 0 rgba(255,45,120,0.5);
+  padding: 10px 20px;
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  backdrop-filter: blur(8px);
+}
+
+.logo {
+  font-family: 'Orbitron', monospace;
+  font-weight: 900;
+  font-size: 18px;
+  color: var(--cyan);
+  text-shadow: 0 0 10px var(--cyan), 0 0 30px rgba(0,245,233,0.4);
+  letter-spacing: 2px;
+  white-space: nowrap;
+}
+.logo em { color: var(--pink); font-style: normal; text-shadow: 0 0 10px var(--pink); }
+
+.topbar-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.chip {
+  font-size: 11px; font-weight: 700;
+  padding: 3px 10px; border-radius: 3px; border: 1px solid;
+  letter-spacing: 1px; white-space: nowrap;
+}
+.chip-green  { color: var(--green);  border-color: var(--green);  background: rgba(57,255,20,0.1);  text-shadow: 0 0 8px var(--green); }
+.chip-red    { color: var(--loss);   border-color: var(--loss);   background: rgba(255,45,120,0.1); text-shadow: 0 0 8px var(--loss); }
+.chip-cyan   { color: var(--cyan);   border-color: var(--cyan);   background: rgba(0,245,233,0.1);  text-shadow: 0 0 6px var(--cyan); }
+.chip-yellow { color: var(--yellow); border-color: var(--yellow); background: rgba(255,238,0,0.1);  text-shadow: 0 0 6px var(--yellow); }
+.chip-purple { color: var(--purple); border-color: var(--purple); background: rgba(191,0,255,0.1);  text-shadow: 0 0 6px var(--purple); }
+.chip-orange { color: var(--orange); border-color: var(--orange); background: rgba(255,107,0,0.1);  text-shadow: 0 0 6px var(--orange); }
+.chip-muted  { color: var(--muted);  border-color: var(--muted);  background: transparent; }
+
+.topbar-right { margin-left: auto; font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: blink 2s infinite; box-shadow: 0 0 6px var(--green); }
+@keyframes blink { 0%,100%{opacity:1}50%{opacity:.2} }
+
+/* ── LAYOUT ── */
+.content { padding: 20px 20px 60px; position: relative; z-index: 1; }
+
+.section-label {
+  font-family: 'Orbitron', monospace;
+  font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--muted); margin: 28px 0 12px;
+  display: flex; align-items: center; gap: 10px;
+}
+.section-label::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--purple), transparent); }
+
+/* ── STAT CARDS ── */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+
+.stat-card {
+  background: var(--bg2);
+  border: 1px solid rgba(191,0,255,0.3);
+  border-radius: 4px;
+  padding: 14px 16px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.stat-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+}
+.stat-card.c-pink::before  { background: var(--pink);   box-shadow: 0 0 8px var(--pink); }
+.stat-card.c-cyan::before  { background: var(--cyan);   box-shadow: 0 0 8px var(--cyan); }
+.stat-card.c-green::before { background: var(--green);  box-shadow: 0 0 8px var(--green); }
+.stat-card.c-yellow::before{ background: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
+.stat-card.c-purple::before{ background: var(--purple); box-shadow: 0 0 8px var(--purple); }
+.stat-card.c-orange::before{ background: var(--orange); box-shadow: 0 0 8px var(--orange); }
+
+.stat-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.stat-value { font-family: 'Orbitron', monospace; font-size: 28px; font-weight: 700; line-height: 1; }
+.stat-value.pos { color: var(--green); text-shadow: 0 0 12px rgba(57,255,20,0.6); }
+.stat-value.neg { color: var(--pink);  text-shadow: 0 0 12px rgba(255,45,120,0.6); }
+.stat-value.neu { color: var(--cyan);  text-shadow: 0 0 12px rgba(0,245,233,0.5); }
+.stat-sub  { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* ── YES / NO PANEL ── */
+.yesno-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.yesno-card {
+  background: var(--bg2);
+  border-radius: 4px;
+  padding: 16px;
+  border: 1px solid rgba(191,0,255,0.2);
+}
+.yn-header {
+  font-family: 'Orbitron', monospace;
+  font-size: 14px; font-weight: 700; margin-bottom: 12px; letter-spacing: 2px;
+}
+.yn-yes { color: var(--cyan);  text-shadow: 0 0 10px var(--cyan); }
+.yn-no  { color: var(--pink);  text-shadow: 0 0 10px var(--pink); }
+
+.yn-stat { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(191,0,255,0.1); }
+.yn-stat:last-child { border-bottom: none; }
+.yn-key { color: var(--muted); font-size: 11px; }
+.yn-val { font-weight: 700; font-size: 12px; }
+
+/* ── CALIBRATION ── */
+.calib-rows { display: flex; flex-direction: column; gap: 10px; }
+.calib-row { background: var(--bg2); border: 1px solid rgba(191,0,255,0.2); border-radius: 4px; padding: 12px 16px; }
+.calib-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.calib-bucket {
+  font-family: 'Orbitron', monospace; font-size: 12px; font-weight: 700;
+  color: var(--yellow); text-shadow: 0 0 8px var(--yellow); letter-spacing: 1px;
+}
+.calib-record { font-size: 12px; color: var(--muted); }
+.calib-record b { color: var(--white); }
+
+.calib-bar-wrap { height: 8px; background: rgba(255,255,255,0.05); border-radius: 2px; position: relative; overflow: hidden; }
+.calib-fill {
+  height: 100%; border-radius: 2px;
+  transition: width 0.8s ease;
+  position: relative;
+}
+.calib-fill::after {
+  content: ''; position: absolute; right: 0; top: 0; bottom: 0;
+  width: 3px; background: rgba(255,255,255,0.6);
+  box-shadow: 0 0 6px white;
+}
+
+.calib-stats { display: flex; gap: 16px; margin-top: 6px; font-size: 11px; color: var(--muted); }
+.calib-stats span b { color: var(--white); }
+
+/* ── OPEN POSITIONS ── */
+.open-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.open-card {
+  background: var(--bg2);
+  border: 1px solid var(--cyan);
+  border-radius: 4px; padding: 14px;
+  box-shadow: 0 0 12px rgba(0,245,233,0.1), inset 0 0 20px rgba(0,245,233,0.03);
+  animation: pulse-card 3s ease-in-out infinite;
+}
+@keyframes pulse-card { 0%,100%{box-shadow:0 0 12px rgba(0,245,233,0.1)} 50%{box-shadow:0 0 20px rgba(0,245,233,0.25)} }
+
+.open-ticker { font-family: 'Orbitron', monospace; font-size: 11px; color: var(--cyan); letter-spacing: 1px; margin-bottom: 6px; word-break: break-all; }
+.open-question { font-size: 11px; color: var(--muted); margin-bottom: 10px; line-height: 1.4; }
+.open-meta { display: flex; gap: 12px; flex-wrap: wrap; }
+.open-tag {
+  font-size: 10px; font-weight: 700; padding: 2px 8px;
+  border-radius: 2px; border: 1px solid; letter-spacing: 1px;
+}
+.open-tag.yes { color: var(--cyan);   border-color: var(--cyan);   background: rgba(0,245,233,0.1); }
+.open-tag.no  { color: var(--pink);   border-color: var(--pink);   background: rgba(255,45,120,0.1); }
+.open-tag.amt { color: var(--yellow); border-color: var(--yellow); background: rgba(255,238,0,0.1); }
+.open-tag.date{ color: var(--muted);  border-color: rgba(107,80,128,0.4); background: transparent; }
+
+/* ── RECENT BETS ── */
+.bet-table { width: 100%; border-collapse: collapse; }
+.bet-table th {
+  font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--muted); padding: 6px 8px; text-align: left;
+  border-bottom: 1px solid rgba(191,0,255,0.3);
+}
+.bet-table td { padding: 7px 8px; border-bottom: 1px solid rgba(191,0,255,0.1); font-size: 12px; vertical-align: middle; }
+.bet-table tr:hover td { background: rgba(191,0,255,0.05); }
+
+.outcome-win  { color: var(--green); font-weight: 700; text-shadow: 0 0 6px rgba(57,255,20,0.5); }
+.outcome-loss { color: var(--pink);  font-weight: 700; text-shadow: 0 0 6px rgba(255,45,120,0.5); }
+.pnl-pos { color: var(--green); font-weight: 700; }
+.pnl-neg { color: var(--pink);  font-weight: 700; }
+
+.side-yes { color: var(--cyan);  font-size: 10px; font-weight: 700; letter-spacing: 1px; }
+.side-no  { color: var(--pink);  font-size: 10px; font-weight: 700; letter-spacing: 1px; }
+
+.ticker-cell { font-size: 10px; color: var(--purple); font-family: 'Share Tech Mono', monospace; }
+
+/* ── STREAK BANNER ── */
+.streak-banner {
+  border-radius: 4px; padding: 10px 16px;
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 4px;
+}
+.streak-banner.win-streak { background: rgba(57,255,20,0.08); border: 1px solid rgba(57,255,20,0.3); }
+.streak-banner.loss-streak { background: rgba(255,45,120,0.08); border: 1px solid rgba(255,45,120,0.3); }
+.streak-num { font-family: 'Orbitron', monospace; font-size: 32px; font-weight: 900; line-height: 1; }
+.streak-num.win  { color: var(--green); text-shadow: 0 0 15px rgba(57,255,20,0.7); }
+.streak-num.loss { color: var(--pink);  text-shadow: 0 0 15px rgba(255,45,120,0.7); }
+.streak-label { font-size: 11px; color: var(--muted); }
+.streak-label b { color: var(--white); display: block; font-size: 13px; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 600px) {
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .yesno-grid { grid-template-columns: 1fr; }
+  .bet-table .hide-sm { display: none; }
+}
+
+/* ── LOADING ── */
+#loading { text-align: center; padding: 60px; color: var(--muted); }
+.spin { display: inline-block; animation: spin 1s linear infinite; font-size: 24px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── GLOW PULSE on big number ── */
+@keyframes glow-pulse {
+  0%,100% { text-shadow: 0 0 10px currentColor; }
+  50%      { text-shadow: 0 0 25px currentColor, 0 0 50px currentColor; }
+}
+.glow-pulse { animation: glow-pulse 3s ease-in-out infinite; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">⚡ GAMMA<em>RAY</em></div>
+  <div class="topbar-chips" id="chips">
+    <span class="chip chip-muted">LOADING...</span>
+  </div>
+  <div class="topbar-right">
+    <div class="live-dot"></div>
+    <span id="updated">--:--</span>
+  </div>
+</div>
+
+<div class="content" id="main">
+  <div id="loading"><span class="spin">⚡</span><br><br>INITIALIZING...</div>
+</div>
+
+<script>
+const GAMMA_DATA = null;  // populated by fetch below
+
+function fmt(n, decimals=2) {
+  if (n == null) return '—';
+  const s = Math.abs(n).toFixed(decimals);
+  return (n < 0 ? '-$' : '+$') + s;
+}
+function fmtPct(n) { return (n >= 0 ? '+' : '') + n + '%'; }
+function pnlClass(n) { return n >= 0 ? 'pnl-pos' : 'pnl-neg'; }
+
+function calibColor(wr, expected) {
+  // Compare actual win rate to midpoint of probability bucket
+  if (wr >= expected + 5) return 'var(--green)';
+  if (wr <= expected - 15) return 'var(--pink)';
+  return 'var(--cyan)';
+}
+
+const CALIB_EXPECTED = { '<50': 30, '50-60': 55, '60-70': 65, '70-80': 75, '80+': 85 };
+
+function render(d) {
+  // ── TOPBAR chips ──
+  const pnlC = d.total_pnl >= 0 ? 'chip-green' : 'chip-red';
+  const roiC = d.roi >= 0 ? 'chip-green' : 'chip-red';
+  document.getElementById('chips').innerHTML = `
+    <span class="chip chip-cyan">${d.total_w}W / ${d.total_l}L</span>
+    <span class="chip chip-yellow">${d.win_rate}% WIN</span>
+    <span class="chip ${pnlC}">${fmt(d.total_pnl)} P&amp;L</span>
+    <span class="chip ${roiC}">${fmtPct(d.roi)} ROI</span>
+    <span class="chip chip-purple">$${d.balance.toFixed(2)} BAL</span>
+    ${d.open.length ? `<span class="chip chip-orange">${d.open.length} OPEN</span>` : ''}
+  `;
+  document.getElementById('updated').textContent = d.updated;
+
+  // ── MAIN ──
+  const m = document.getElementById('main');
+
+  // Stat cards
+  const pnlSign = d.total_pnl >= 0;
+  const roiSign = d.roi >= 0;
+
+  let html = `
+  <div class="stat-grid">
+    <div class="stat-card c-cyan">
+      <div class="stat-label">Win Rate</div>
+      <div class="stat-value neu glow-pulse">${d.win_rate}<span style="font-size:16px">%</span></div>
+      <div class="stat-sub">${d.total_w}W &nbsp;/&nbsp; ${d.total_l}L &nbsp;·&nbsp; ${d.voided} voided</div>
+    </div>
+    <div class="stat-card ${pnlSign ? 'c-green' : 'c-pink'}">
+      <div class="stat-label">Net P&amp;L</div>
+      <div class="stat-value ${pnlSign ? 'pos' : 'neg'} glow-pulse">${fmt(d.total_pnl)}</div>
+      <div class="stat-sub">on $${d.total_risked} risked</div>
+    </div>
+    <div class="stat-card ${roiSign ? 'c-green' : 'c-pink'}">
+      <div class="stat-label">ROI</div>
+      <div class="stat-value ${roiSign ? 'pos' : 'neg'} glow-pulse">${fmtPct(d.roi)}</div>
+      <div class="stat-sub">all resolved bets</div>
+    </div>
+    <div class="stat-card c-purple">
+      <div class="stat-label">Balance</div>
+      <div class="stat-value neu">$${d.balance.toFixed(0)}</div>
+      <div class="stat-sub">Kalshi portfolio</div>
+    </div>
+    <div class="stat-card c-yellow">
+      <div class="stat-label">Streak</div>
+      <div class="stat-value ${d.streak_type === 'win' ? 'pos' : 'neg'}">${d.streak}</div>
+      <div class="stat-sub">${d.streak_type === 'win' ? '🔥 WIN' : d.streak_type === 'loss' ? '❌ LOSS' : '—'} STREAK</div>
+    </div>
+    <div class="stat-card c-orange">
+      <div class="stat-label">Open Bets</div>
+      <div class="stat-value neu">${d.open.length}</div>
+      <div class="stat-sub">positions at risk</div>
+    </div>
+  </div>`;
+
+  // YES vs NO
+  html += `<div class="section-label">YES vs NO breakdown</div>
+  <div class="yesno-grid">
+    <div class="yesno-card">
+      <div class="yn-header yn-yes">▲ YES BETS</div>
+      <div class="yn-stat"><span class="yn-key">Record</span><span class="yn-val">${d.yes.w}W / ${d.yes.l}L</span></div>
+      <div class="yn-stat"><span class="yn-key">Win Rate</span><span class="yn-val" style="color:var(--cyan)">${d.yes.wr}%</span></div>
+      <div class="yn-stat"><span class="yn-key">P&amp;L</span><span class="yn-val ${pnlClass(d.yes.pnl)}">${fmt(d.yes.pnl)}</span></div>
+    </div>
+    <div class="yesno-card">
+      <div class="yn-header yn-no">▼ NO BETS</div>
+      <div class="yn-stat"><span class="yn-key">Record</span><span class="yn-val">${d.no.w}W / ${d.no.l}L</span></div>
+      <div class="yn-stat"><span class="yn-key">Win Rate</span><span class="yn-val" style="color:var(--pink)">${d.no.wr}%</span></div>
+      <div class="yn-stat"><span class="yn-key">P&amp;L</span><span class="yn-val ${pnlClass(d.no.pnl)}">${fmt(d.no.pnl)}</span></div>
+    </div>
+  </div>`;
+
+  // Calibration
+  html += `<div class="section-label">Confidence calibration</div>
+  <div class="calib-rows">`;
+
+  const calibOrder = ['<50','50-60','60-70','70-80','80+'];
+  const calibLabels = {'<50':'&lt; 50%','50-60':'50–60%','60-70':'60–70%','70-80':'70–80%','80+':'80%+'};
+
+  for (const key of calibOrder) {
+    const b = d.calib.find(x => x.bucket === key);
+    if (!b) continue;
+    const exp = CALIB_EXPECTED[key] || 50;
+    const color = calibColor(b.win_rate, exp);
+    const fillPct = Math.min(100, b.win_rate);
+    const pnlTxt = b.pnl >= 0 ? `+$${b.pnl.toFixed(2)}` : `-$${Math.abs(b.pnl).toFixed(2)}`;
+    const pnlCol = b.pnl >= 0 ? 'var(--green)' : 'var(--pink)';
+    html += `
+    <div class="calib-row">
+      <div class="calib-top">
+        <span class="calib-bucket">${calibLabels[key]}</span>
+        <span class="calib-record"><b>${b.wins}/${b.total}</b> wins &nbsp;·&nbsp; <b style="color:${color}">${b.win_rate}%</b> &nbsp;·&nbsp; <b style="color:${pnlCol}">${pnlTxt}</b></span>
+      </div>
+      <div class="calib-bar-wrap">
+        <div class="calib-fill" style="width:${fillPct}%;background:${color};box-shadow:0 0 8px ${color}"></div>
+      </div>
+      <div class="calib-stats">
+        <span>Expected: <b>${exp}%</b></span>
+        <span>Actual: <b style="color:${color}">${b.win_rate}%</b></span>
+        <span>Delta: <b style="color:${b.win_rate - exp >= 0 ? 'var(--green)' : 'var(--pink)'}">${b.win_rate - exp > 0 ? '+' : ''}${(b.win_rate - exp).toFixed(1)}pp</b></span>
+      </div>
+    </div>`;
+  }
+  html += `</div>`;
+
+  // Open positions
+  if (d.open.length) {
+    html += `<div class="section-label">Open positions</div>
+    <div class="open-grid">`;
+    for (const p of d.open) {
+      const sideClass = p.side === 'yes' ? 'yes' : 'no';
+      const priceDollars = (p.price_cents / 100).toFixed(2);
+      html += `
+      <div class="open-card">
+        <div class="open-ticker">${p.market_id}</div>
+        <div class="open-question">${p.question.replace(/\*\*/g,'')}</div>
+        <div class="open-meta">
+          <span class="open-tag ${sideClass}">${p.side.toUpperCase()}</span>
+          <span class="open-tag amt">$${p.size_usd.toFixed(2)} @ ${priceDollars}</span>
+          <span class="open-tag date">${p.placed_at}</span>
+        </div>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  // Recent bets
+  html += `<div class="section-label">Recent bets</div>
+  <div style="overflow-x:auto">
+  <table class="bet-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th class="hide-sm">Market</th>
+        <th>Side</th>
+        <th>Size</th>
+        <th class="hide-sm">Edge</th>
+        <th>Result</th>
+        <th>P&amp;L</th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+  for (const b of d.recent) {
+    const edgeTxt = b.edge != null ? (b.edge * 100).toFixed(1) + '%' : '—';
+    html += `
+    <tr>
+      <td style="color:var(--muted)">${b.placed_at}</td>
+      <td class="hide-sm ticker-cell">${b.market_id.substring(0,24)}</td>
+      <td><span class="side-${b.side}">${b.side.toUpperCase()}</span></td>
+      <td>$${b.size_usd.toFixed(2)}</td>
+      <td class="hide-sm" style="color:var(--muted)">${edgeTxt}</td>
+      <td class="outcome-${b.outcome}">${b.outcome.toUpperCase()}</td>
+      <td class="${pnlClass(b.pnl)}">${fmt(b.pnl)}</td>
+    </tr>`;
+  }
+
+  html += `</tbody></table></div>`;
+
+  m.innerHTML = html;
+}
+
+async function refresh() {
+  try {
+    const res = await fetch('data.json?t=' + Date.now());
+    if (!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    render(data);
+  } catch(e) {
+    document.getElementById('updated').textContent = 'ERR';
+    console.warn('fetch error', e);
+  }
+}
+
+refresh();
+setInterval(refresh, 300000);
+</script>
+</body>
+</html>
