@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>⚡ Gamma Ray — Kalshi Prediction Markets</title>
+<title>⚡ Gamma Ray — Prediction Markets</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
 
@@ -201,8 +201,8 @@ body::before {
 }
 @keyframes pulse-card { 0%,100%{box-shadow:0 0 12px rgba(0,245,233,0.1)} 50%{box-shadow:0 0 20px rgba(0,245,233,0.25)} }
 
-.open-ticker { font-family: 'Orbitron', monospace; font-size: 11px; color: var(--cyan); letter-spacing: 1px; margin-bottom: 6px; word-break: break-all; }
-.open-question { font-size: 11px; color: var(--muted); margin-bottom: 10px; line-height: 1.4; }
+.open-ticker { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 1px; margin-top: 6px; margin-bottom: 10px; word-break: break-all; opacity: 0.7; }
+.open-question { font-size: 15px; font-weight: 700; color: var(--white); margin-bottom: 4px; line-height: 1.35; letter-spacing: 0.2px; text-shadow: 0 0 12px rgba(0,245,233,0.15); }
 .open-meta { display: flex; gap: 12px; flex-wrap: wrap; }
 .open-tag {
   font-size: 10px; font-weight: 700; padding: 2px 8px;
@@ -285,7 +285,7 @@ body::before {
 </div>
 
 <script>
-const GAMMA_DATA = null;  // populated by fetch below
+const GAMMA_DATA = null;  // replaced at build time by gamma_data_gen.py
 
 function fmt(n, decimals=2) {
   if (n == null) return '—';
@@ -418,8 +418,8 @@ function render(d) {
       const priceDollars = (p.price_cents / 100).toFixed(2);
       html += `
       <div class="open-card">
-        <div class="open-ticker">${p.market_id}</div>
         <div class="open-question">${p.question.replace(/\*\*/g,'')}</div>
+        <div class="open-ticker">${p.market_id}</div>
         <div class="open-meta">
           <span class="open-tag ${sideClass}">${p.side.toUpperCase()}</span>
           <span class="open-tag amt">$${p.size_usd.toFixed(2)} @ ${priceDollars}</span>
@@ -466,20 +466,17 @@ function render(d) {
   m.innerHTML = html;
 }
 
-async function refresh() {
-  try {
-    const res = await fetch('data.json?t=' + Date.now());
-    if (!res.ok) throw new Error(res.status);
-    const data = await res.json();
-    render(data);
-  } catch(e) {
-    document.getElementById('updated').textContent = 'ERR';
-    console.warn('fetch error', e);
+function refresh() {
+  if (GAMMA_DATA) {
+    render(GAMMA_DATA);
+  } else {
+    document.getElementById('main').innerHTML = '<div id="loading"><span class="spin">⚡</span><br><br>NO DATA — run gamma_data_gen.py</div>';
   }
 }
 
 refresh();
-setInterval(refresh, 300000);
+// Page auto-reloads to pick up fresh data every 5 min
+setTimeout(() => location.reload(), 300000);
 </script>
 </body>
 </html>
