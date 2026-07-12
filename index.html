@@ -466,17 +466,20 @@ function render(d) {
   m.innerHTML = html;
 }
 
-function refresh() {
-  if (GAMMA_DATA) {
-    render(GAMMA_DATA);
-  } else {
-    document.getElementById('main').innerHTML = '<div id="loading"><span class="spin">⚡</span><br><br>NO DATA — run gamma_data_gen.py</div>';
+async function refresh() {
+  try {
+    const res = await fetch('data.json?t=' + Date.now());
+    if (!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    render(data);
+  } catch(e) {
+    document.getElementById('updated').textContent = 'ERR';
+    console.warn('fetch error', e);
   }
 }
 
 refresh();
-// Page auto-reloads to pick up fresh data every 5 min
-setTimeout(() => location.reload(), 300000);
+setInterval(refresh, 300000);
 </script>
 </body>
 </html>
