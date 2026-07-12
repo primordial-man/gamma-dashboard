@@ -451,7 +451,7 @@ function render(d) {
     const edgeTxt = b.edge != null ? (b.edge * 100).toFixed(1) + '%' : '—';
     html += `
     <tr>
-      <td style="color:var(--muted);font-size:10px;opacity:0.55;letter-spacing:0">${b.placed_at}</td>
+      <td style="color:var(--muted)">${b.placed_at}</td>
       <td class="hide-sm ticker-cell">${b.market_id.substring(0,24)}</td>
       <td><span class="side-${b.side}">${b.side.toUpperCase()}</span></td>
       <td>$${b.size_usd.toFixed(2)}</td>
