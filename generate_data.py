@@ -7,12 +7,35 @@ Usage:
     python3 generate_data.py          # writes data.json next to this script
     python3 generate_data.py --dry-run  # prints JSON, doesn't write
 """
-import json, sys, sqlite3
+import json, sys, sqlite3, os
 from pathlib import Path
 from datetime import datetime
 
 GAMMA_DIR = Path.home() / "Projects/gamma-ray"
 OUT_FILE  = Path(__file__).parent / "data.json"
+
+def fetch_kalshi_balance() -> float:
+    """Pull live available balance from Kalshi API using the gamma-ray venv Python."""
+    import subprocess
+    venv_python = GAMMA_DIR / "venv/bin/python"
+    script = (
+        "import sys; sys.path.insert(0, r'{gdir}');\n"
+        "from gamma_ray.markets.kalshi_client import KalshiClient;\n"
+        "print(KalshiClient().get_balance())"
+    ).format(gdir=GAMMA_DIR)
+    try:
+        result = subprocess.run(
+            [str(venv_python), "-c", script],
+            capture_output=True, text=True, timeout=15,
+            cwd=str(GAMMA_DIR),
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return float(result.stdout.strip())
+        print(f"[gamma-data] WARNING: balance fetch failed: {result.stderr.strip()}", file=sys.stderr)
+    except Exception as e:
+        print(f"[gamma-data] WARNING: could not fetch live balance: {e}", file=sys.stderr)
+    return None
+
 
 def load_ledger():
     db_path = GAMMA_DIR / "data/ledger.db"
@@ -85,7 +108,7 @@ def load_ledger():
                 "roi":round(no_pnl/no_risked*100,1)},
         "calib": calib, "recent": recent, "open": open_pos,
         "streak": streak, "streak_type": streak_type,
-        "balance": 184.11,
+        "balance": fetch_kalshi_balance(),  # live from Kalshi API
     }
 
 if __name__ == "__main__":
