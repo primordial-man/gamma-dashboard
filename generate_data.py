@@ -14,26 +14,29 @@ from datetime import datetime
 GAMMA_DIR = Path.home() / "Projects/gamma-ray"
 OUT_FILE  = Path(__file__).parent / "data.json"
 
-def fetch_kalshi_balance() -> float:
-    """Pull live available balance from Kalshi API using the gamma-ray venv Python."""
+def fetch_kalshi_portfolio() -> dict:
+    """
+    Pull full portfolio value from Kalshi API using the gamma-ray venv Python.
+    Returns dict: {cash, positions_mtm, total} or None on failure.
+    """
     import subprocess
     venv_python = GAMMA_DIR / "venv/bin/python"
     script = (
-        "import sys; sys.path.insert(0, r'{gdir}');\n"
+        "import sys, json; sys.path.insert(0, r'{gdir}');\n"
         "from gamma_ray.markets.kalshi_client import KalshiClient;\n"
-        "print(KalshiClient().get_balance())"
+        "print(json.dumps(KalshiClient().get_portfolio_value()))"
     ).format(gdir=GAMMA_DIR)
     try:
         result = subprocess.run(
             [str(venv_python), "-c", script],
-            capture_output=True, text=True, timeout=15,
+            capture_output=True, text=True, timeout=20,
             cwd=str(GAMMA_DIR),
         )
         if result.returncode == 0 and result.stdout.strip():
-            return float(result.stdout.strip())
-        print(f"[gamma-data] WARNING: balance fetch failed: {result.stderr.strip()}", file=sys.stderr)
+            return json.loads(result.stdout.strip())
+        print(f"[gamma-data] WARNING: portfolio fetch failed: {result.stderr.strip()}", file=sys.stderr)
     except Exception as e:
-        print(f"[gamma-data] WARNING: could not fetch live balance: {e}", file=sys.stderr)
+        print(f"[gamma-data] WARNING: could not fetch live portfolio: {e}", file=sys.stderr)
     return None
 
 
@@ -108,7 +111,9 @@ def load_ledger():
                 "roi":round(no_pnl/no_risked*100,1)},
         "calib": calib, "recent": recent, "open": open_pos,
         "streak": streak, "streak_type": streak_type,
-        "balance": fetch_kalshi_balance(),  # live from Kalshi API
+        "balance": (_pf := fetch_kalshi_portfolio()) and _pf["total"] or None,
+        "balance_cash": _pf["cash"] if _pf else None,
+        "balance_positions": _pf["positions_mtm"] if _pf else None,
     }
 
 if __name__ == "__main__":
